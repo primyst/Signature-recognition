@@ -18,7 +18,7 @@ export default function SignatureUploader() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/verify", {
+      const res = await fetch("http://signature-recognition-0n3m.onrender.com/verify", {
         method: "POST",
         body: formData,
       });
