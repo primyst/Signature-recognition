@@ -27,4 +27,4 @@ def verify_signature():
     
     return jsonify({'match_score': score})
 
-if __name__ == '__main__': app.run(debug=True)
+app = Flask(__name__)
