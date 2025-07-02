@@ -26,5 +26,3 @@ def verify_signature():
     score = compare_signatures(path1, path2)
     
     return jsonify({'match_score': score})
-
-app = Flask(__name__)
