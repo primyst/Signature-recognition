@@ -37,9 +37,12 @@ export default function SignatureUploader() {
       onSubmit={handleSubmit}
       className="max-w-md mx-auto p-6 bg-white rounded-2xl shadow-md space-y-4"
     >
-      <h1 className="text-xl lg:text-3xl font-semibold text-cyan-900">
+      h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-gray-800">
+  A PROJECT OF KAMAL
+</h1>
+      <h2 className="text-xl lg:text-3xl font-semibold text-cyan-900">
         SIGNATURE VERIFICATION SYSTEM
-      </h1>
+      </h2>
       <div>
         <label className="block mb-1 font-semibold">Signature 1:</label>
         <input
