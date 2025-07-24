@@ -38,7 +38,7 @@ export default function SignatureUploader() {
       className="max-w-md mx-auto p-6 bg-white rounded-2xl shadow-md space-y-4"
     >
       <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-gray-800">
-  A PROJECT OF KAMAL
+  A PROJECT OF SHITTU KAMALIDEEN
 </h1>
       <h2 className="text-xl lg:text-3xl font-semibold text-cyan-900">
         SIGNATURE VERIFICATION SYSTEM
