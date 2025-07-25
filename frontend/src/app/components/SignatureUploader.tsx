@@ -15,12 +15,11 @@ export default function SignatureVerifier() {
   const handleCompare = async () => {
     const formData = new FormData()
 
-    if (!original) return alert("Upload original signature!")
-
+    if (!original) return alert('Upload original signature!')
     formData.append('original', original)
 
     if (mode === 'upload') {
-      if (!test) return alert("Upload test signature!")
+      if (!test) return alert('Upload test signature!')
       formData.append('test', test)
     } else {
       const drawn = sigCanvasRef.current?.toDataURL()
@@ -33,61 +32,66 @@ export default function SignatureVerifier() {
         'https://your-backend-api-url.com/verify',
         formData
       )
-      setResult(res.data.match ? "✅ Match" : "❌ No Match")
+      setResult(res.data.match ? '✅ Match' : '❌ No Match')
     } catch (err) {
-      setResult("❌ Error verifying signature")
+      setResult('❌ Error verifying signature')
     }
   }
 
   return (
-    <div className="p-4 space-y-4 max-w-md mx-auto">
-      <h1 className="text-xl font-bold text-center">Signature Verification</h1>
+    <div className="max-w-md mx-auto p-6 bg-white shadow-xl rounded-2xl space-y-6">
+      <h1 className="text-2xl font-bold text-center text-gray-800">Signature Verification</h1>
 
-      {/* Toggle Input */}
-      <select
-        value={mode}
-        onChange={(e) => setMode(e.target.value as 'draw' | 'upload')}
-        className="w-full p-2 border rounded"
-      >
-        <option value="draw">✍️ Draw Test Signature</option>
-        <option value="upload">📁 Upload Test Signature</option>
-      </select>
-
-      {/* Original Upload */}
+      {/* Mode Selector */}
       <div>
-        <label className="block font-semibold">Original Signature</label>
+        <label className="block font-semibold text-gray-700 mb-1">Test Signature Input Method</label>
+        <select
+          value={mode}
+          onChange={(e) => setMode(e.target.value as 'draw' | 'upload')}
+          className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option value="draw">✍️ Draw Test Signature</option>
+          <option value="upload">📁 Upload Test Signature</option>
+        </select>
+      </div>
+
+      {/* Upload Original Signature */}
+      <div>
+        <label className="block font-semibold text-gray-700 mb-1">Original Signature</label>
         <input
           type="file"
           accept="image/*"
           onChange={(e) => setOriginal(e.target.files?.[0] || null)}
-          className="w-full"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
       </div>
 
-      {/* Drawing Pad or Upload */}
+      {/* Draw or Upload Test Signature */}
       {mode === 'draw' ? (
         <div>
-          <label className="block font-semibold">Draw Test Signature</label>
-          <SignatureCanvas
-            ref={sigCanvasRef}
-            penColor="black"
-            canvasProps={{ width: 300, height: 150, className: 'border rounded' }}
-          />
+          <label className="block font-semibold text-gray-700 mb-2">Draw Test Signature</label>
+          <div className="border rounded-lg overflow-hidden shadow-sm">
+            <SignatureCanvas
+              ref={sigCanvasRef}
+              penColor="black"
+              canvasProps={{ width: 300, height: 150, className: 'bg-white' }}
+            />
+          </div>
           <button
             onClick={() => sigCanvasRef.current?.clear()}
-            className="mt-2 px-2 py-1 bg-gray-300 text-sm rounded"
+            className="mt-2 px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded-md"
           >
-            Clear
+            🧹 Clear
           </button>
         </div>
       ) : (
         <div>
-          <label className="block font-semibold">Upload Test Signature</label>
+          <label className="block font-semibold text-gray-700 mb-1">Upload Test Signature</label>
           <input
             type="file"
             accept="image/*"
             onChange={(e) => setTest(e.target.files?.[0] || null)}
-            className="w-full"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
       )}
@@ -95,12 +99,17 @@ export default function SignatureVerifier() {
       {/* Compare Button */}
       <button
         onClick={handleCompare}
-        className="w-full bg-blue-500 text-white py-2 rounded"
+        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-200"
       >
-        Compare Signatures
+        🔍 Compare Signatures
       </button>
 
-      {result && <p className="text-center font-semibold">{result}</p>}
+      {/* Result */}
+      {result && (
+        <div className="text-center text-lg font-semibold text-gray-800 mt-2">
+          {result}
+        </div>
+      )}
     </div>
   )
 }
