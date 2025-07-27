@@ -1,115 +1,112 @@
-'use client'
+"use client";
+import { useEffect, useRef, useState } from "react";
+import * as tf from "@tensorflow/tfjs-core";
+import "@tensorflow/tfjs-converter";
+import "@tensorflow/tfjs-backend-webgl";
+import * as handpose from "@tensorflow-models/handpose";
 
-import { useState, useRef } from 'react'
-import SignatureCanvas from 'react-signature-canvas'
-import axios from 'axios'
+export function HandDetector() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [model, setModel] = useState<handpose.HandPose | null>(null);
+  const [status, setStatus] = useState("🚀 Loading model...");
+  const [detected, setDetected] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-export default function SignatureVerifier() {
-  const [mode, setMode] = useState<'draw' | 'upload'>('draw')
-  const [original, setOriginal] = useState<File | null>(null)
-  const [test, setTest] = useState<File | null>(null)
-  const [result, setResult] = useState<string | null>(null)
-
-  const sigCanvasRef = useRef<SignatureCanvas>(null)
-
-  const handleCompare = async () => {
-    const formData = new FormData()
-
-    if (!original) return alert('Upload original signature!')
-    formData.append('original', original)
-
-    if (mode === 'upload') {
-      if (!test) return alert('Upload test signature!')
-      formData.append('test', test)
-    } else {
-      const drawn = sigCanvasRef.current?.toDataURL()
-      const blob = await (await fetch(drawn!)).blob()
-      formData.append('test', new File([blob], 'drawn.png', { type: 'image/png' }))
+  useEffect(() => {
+    async function loadModel() {
+      await tf.setBackend("webgl");
+      const loadedModel = await handpose.load();
+      setModel(loadedModel);
+      setStatus("✅ Model loaded. Show your hand!");
     }
+    loadModel();
+  }, []);
 
-    try {
-      const res = await axios.post(
-        'https://your-backend-api-url.com/verify',
-        formData
-      )
-      setResult(res.data.match ? '✅ Match' : '❌ No Match')
-    } catch (err) {
-      setResult('❌ Error verifying signature')
-    }
-  }
+  useEffect(() => {
+    if (!model) return;
+
+    const video = videoRef.current!;
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          video.play();
+          detectLoop();
+        };
+      })
+      .catch(console.error);
+
+    const detectLoop = async () => {
+      const canvas = canvasRef.current!;
+      const ctx = canvas.getContext("2d")!;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      async function detect() {
+        if (!model) return;
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const predictions = await model.estimateHands(video);
+
+        if (predictions.length > 0) {
+          setStatus("🖐️ Hand detected!");
+          setDetected(true);
+
+          // Draw points
+          predictions.forEach((hand) => {
+            hand.landmarks.forEach(([x, y]) => {
+              ctx.beginPath();
+              ctx.arc(x, y, 6, 0, 2 * Math.PI);
+              ctx.fillStyle = "#00ffcc";
+              ctx.shadowColor = "#00ffcc";
+              ctx.shadowBlur = 10;
+              ctx.fill();
+            });
+          });
+
+          // If no timer already, start 3s timer
+          if (!timeoutRef.current) {
+            timeoutRef.current = setTimeout(() => {
+              captureAndDownload();
+              setStatus("✅ Authorised! Screenshot taken.");
+              timeoutRef.current = null; // Reset
+            }, 3000);
+          }
+        } else {
+          setStatus("👀 No hand detected");
+          setDetected(false);
+
+          // Clear pending screenshot timeout if hand is gone
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+        }
+
+        requestAnimationFrame(detect);
+      }
+
+      detect();
+    };
+  }, [model]);
+
+  const captureAndDownload = () => {
+    const canvas = canvasRef.current!;
+    const link = document.createElement("a");
+    link.download = "hand-detected.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white shadow-xl rounded-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-center text-gray-800">Signature Verification</h1>
-
-      {/* Mode Selector */}
-      <div>
-        <label className="block font-semibold text-gray-700 mb-1">Test Signature Input Method</label>
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value as 'draw' | 'upload')}
-          className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
-          <option value="draw">✍️ Draw Test Signature</option>
-          <option value="upload">📁 Upload Test Signature</option>
-        </select>
+    <div className="relative w-full h-full">
+      <video ref={videoRef} className="absolute w-full h-full object-cover" />
+      <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full" />
+      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 text-sm px-4 py-1 rounded-full text-teal-400">
+        {status}
       </div>
-
-      {/* Upload Original Signature */}
-      <div>
-        <label className="block font-semibold text-gray-700 mb-1">Original Signature</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setOriginal(e.target.files?.[0] || null)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
-
-      {/* Draw or Upload Test Signature */}
-      {mode === 'draw' ? (
-        <div>
-          <label className="block font-semibold text-gray-700 mb-2">Draw Test Signature</label>
-          <div className="border rounded-lg overflow-hidden shadow-sm">
-            <SignatureCanvas
-              ref={sigCanvasRef}
-              penColor="black"
-              canvasProps={{ width: 300, height: 150, className: 'bg-white' }}
-            />
-          </div>
-          <button
-            onClick={() => sigCanvasRef.current?.clear()}
-            className="mt-2 px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded-md"
-          >
-            🧹 Clear
-          </button>
-        </div>
-      ) : (
-        <div>
-          <label className="block font-semibold text-gray-700 mb-1">Upload Test Signature</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setTest(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-      )}
-
-      {/* Compare Button */}
-      <button
-        onClick={handleCompare}
-        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-200"
-      >
-        🔍 Compare Signatures
-      </button>
-
-      {/* Result */}
-      {result && (
-        <div className="text-center text-lg font-semibold text-gray-800 mt-2">
-          {result}
-        </div>
-      )}
     </div>
-  )
+  );
 }
