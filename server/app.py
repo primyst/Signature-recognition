@@ -11,20 +11,20 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/api/verify', methods=['POST'])
 def verify_signature():
-    if 'signature1' not in request.files or 'signature2' not in request.files:
+    if 'original' not in request.files or 'test' not in request.files:
         return jsonify({'error': 'Missing files'}), 400
-    
-    sig1 = request.files['signature1']
-    sig2 = request.files['signature2']
-    
+
+    sig1 = request.files['original']
+    sig2 = request.files['test']
+
     path1 = os.path.join(UPLOAD_FOLDER, sig1.filename)
     path2 = os.path.join(UPLOAD_FOLDER, sig2.filename)
-    
+
     sig1.save(path1)
     sig2.save(path2)
-    
+
     score = compare_signatures(path1, path2)
-    
+
     return jsonify({'match_score': score})
 
 @app.route('/')
