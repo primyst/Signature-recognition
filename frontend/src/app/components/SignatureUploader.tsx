@@ -28,10 +28,10 @@ export default function SignatureVerifier() {
     }
 
     try {
-      const res = await axios.post(
-        'https://signature-recognition-0n3m.onrender.com/verify',
-        formData
-      )
+      const res = await fetch("https://signature-recognition-0n3m.onrender.com/api/verify", {
+  method: "POST",
+  body: formData,
+});
       setResult(res.data.match ? '✅ Match' : '❌ No Match')
     } catch (err) {
       setResult('❌ Error verifying signature')
