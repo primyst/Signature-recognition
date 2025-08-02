@@ -2,13 +2,13 @@
 
 import { useState, useRef } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
-import axios from 'axios'
 
 export default function SignatureVerifier() {
   const [mode, setMode] = useState<'draw' | 'upload'>('draw')
   const [original, setOriginal] = useState<File | null>(null)
   const [test, setTest] = useState<File | null>(null)
   const [result, setResult] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const sigCanvasRef = useRef<SignatureCanvas>(null)
 
@@ -28,17 +28,26 @@ export default function SignatureVerifier() {
     }
 
     try {
+      setLoading(true)
+      setResult(null)
+
       const res = await fetch("https://signature-recognition-0n3m.onrender.com/api/verify", {
         method: "POST",
         body: formData,
       })
 
       const data = await res.json()
-      setResult(data.match_score >= 50 ? '✅ Match' : '❌ No Match')
+      const score = data.match_score
+      const matched = score >= 50
+
+      setResult(`${score}% - ${matched ? '✅ Match' : '❌ No Match'}`)
     } catch (err) {
       setResult('❌ Error verifying signature')
+    } finally {
+      setLoading(false)
     }
   }
+
   return (
     <div className="max-w-md mx-auto p-6 bg-white shadow-xl rounded-2xl space-y-6">
       <h1 className="text-2xl font-bold text-center text-gray-800">Signature Verification</h1>
@@ -100,9 +109,10 @@ export default function SignatureVerifier() {
       {/* Compare Button */}
       <button
         onClick={handleCompare}
-        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-200"
+        disabled={loading}
+        className={`w-full py-2 ${loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} text-white font-medium rounded-lg transition duration-200`}
       >
-        🔍 Compare Signatures
+        {loading ? '⏳ Verifying...' : '🔍 Compare Signatures'}
       </button>
 
       {/* Result */}
