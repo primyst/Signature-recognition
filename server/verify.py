@@ -6,6 +6,14 @@ def compare_signatures(path1, path2):
     img1 = cv2.imread(path1, cv2.IMREAD_GRAYSCALE)
     img2 = cv2.imread(path2, cv2.IMREAD_GRAYSCALE)
 
+    # Resize to same size
+    img1 = cv2.resize(img1, (300, 100))
+    img2 = cv2.resize(img2, (300, 100))
+
+    # Apply binary thresholding
+    _, img1 = cv2.threshold(img1, 127, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    _, img2 = cv2.threshold(img2, 127, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
     orb = cv2.ORB_create()
 
     kp1, des1 = orb.detectAndCompute(img1, None)
