@@ -28,16 +28,16 @@ export default function SignatureVerifier() {
     }
 
     try {
-      const res = await fetch("https://signature-recognition-0n3m.onrender.com/api/verify", {
-  method: "POST",
-  body: formData,
-});
-      setResult(res.data.match ? '✅ Match' : '❌ No Match')
-    } catch (err) {
-      setResult('❌ Error verifying signature')
-    }
-  }
+  const res = await fetch("https://signature-recognition-0n3m.onrender.com/api/verify", {
+    method: "POST",
+    body: formData,
+  })
 
+  const data = await res.json()
+  setResult(data.match_score >= 50 ? '✅ Match' : '❌ No Match')
+} catch (err) {
+  setResult('❌ Error verifying signature')
+}
   return (
     <div className="max-w-md mx-auto p-6 bg-white shadow-xl rounded-2xl space-y-6">
       <h1 className="text-2xl font-bold text-center text-gray-800">Signature Verification</h1>
