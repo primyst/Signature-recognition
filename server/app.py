@@ -29,4 +29,4 @@ def verify_signature():
 
 @app.route('/')
 def home():
-    return jsonify({"message": "Signature Verification API is live"})a
+    return jsonify({"message": "Signature Verification API is live"})
