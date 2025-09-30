@@ -1,130 +1,148 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import SignatureCanvas from 'react-signature-canvas'
+import { useState } from 'react'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts'
 
-export default function SignatureVerifier() {
-  const [mode, setMode] = useState<'draw' | 'upload'>('draw')
-  const [original, setOriginal] = useState<File | null>(null)
-  const [test, setTest] = useState<File | null>(null)
-  const [result, setResult] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+export default function HandwritingDashboard() {
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [selectedAnalysis, setSelectedAnalysis] = useState('Slant')
+  const [analysisResult, setAnalysisResult] = useState('Pending')
 
-  const sigCanvasRef = useRef<SignatureCanvas>(null)
+  // Mock line chart data (e.g., slant or pressure over lines)
+  const lineData = Array.from({ length: 10 }, (_, i) => ({
+    line: i + 1,
+    value: Math.floor(Math.random() * 100),
+  }))
 
-  const handleCompare = async () => {
-    if (!original) return alert('Upload original signature!')
-
-    const formData = new FormData()
-    formData.append('original', original)
-
-    if (mode === 'upload') {
-      if (!test) return alert('Upload test signature!')
-      formData.append('test', test)
-    } else {
-      const drawn = sigCanvasRef.current?.toDataURL()
-      const blob = await (await fetch(drawn!)).blob()
-      formData.append('test', new File([blob], 'drawn.png', { type: 'image/png' }))
-    }
-
-    try {
-      setLoading(true)
-      setResult(null)
-
-      const res = await fetch("https://signature-recognition-0n3m.onrender.com/api/verify", {
-        method: "POST",
-        body: formData,
-      })
-
-      const data = await res.json()
-      const score = data.match_score
-      const matched = score >= 50
-
-      setResult(`${score}% - ${matched ? '✅ Match' : '❌ No Match'}`)
-    } catch (err) {
-      setResult('❌ Error verifying signature')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Mock pie chart data (completed vs pending)
+  const pieData = [
+    { name: 'Completed', value: 80 },
+    { name: 'Pending', value: 20 },
+  ]
+  const COLORS = ['#00FFFF', '#555555']
 
   return (
-    <div className="max-w-lg mx-auto p-8 bg-gray-50 rounded-3xl shadow-2xl space-y-6 border border-gray-200">
-      <h1 className="text-3xl font-extrabold text-center text-gray-900 tracking-wide">
-        🕵️ Forensic Handwriting Analysis
-      </h1>
+    <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
+      {/* Header */}
+      <header className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-extrabold text-cyan-400 tracking-wide">
+          🕵️ Forensic Handwriting Dashboard
+        </h1>
+        <div className="text-gray-400">Lab Interface</div>
+      </header>
 
-      {/* Mode Selector */}
-      <div>
-        <label className="block font-semibold text-gray-700 mb-2">Test Signature Input Method</label>
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value as 'draw' | 'upload')}
-          className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-        >
-          <option value="draw">✍️ Draw Test Signature</option>
-          <option value="upload">📁 Upload Test Signature</option>
-        </select>
-      </div>
-
-      {/* Upload Original Signature */}
-      <div>
-        <label className="block font-semibold text-gray-700 mb-2">Original Signature</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setOriginal(e.target.files?.[0] || null)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-        />
-      </div>
-
-      {/* Draw or Upload Test Signature */}
-      {mode === 'draw' ? (
-        <div>
-          <label className="block font-semibold text-gray-700 mb-2">Draw Test Signature</label>
-          <div className="border rounded-xl overflow-hidden shadow-inner bg-white">
-            <SignatureCanvas
-              ref={sigCanvasRef}
-              penColor="black"
-              canvasProps={{ width: 320, height: 160, className: 'bg-white' }}
-            />
-          </div>
-          <button
-            onClick={() => sigCanvasRef.current?.clear()}
-            className="mt-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-xl text-sm font-medium transition"
-          >
-            🧹 Clear
-          </button>
-        </div>
-      ) : (
-        <div>
-          <label className="block font-semibold text-gray-700 mb-2">Upload Test Signature</label>
+      {/* Main Panels */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Upload Panel */}
+        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
+          <h2 className="text-xl font-bold text-cyan-300 mb-4">Upload Sample</h2>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setTest(e.target.files?.[0] || null)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+            className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition mb-4"
           />
+          <p className="text-gray-400 text-sm">
+            {uploadedFile ? `Selected: ${uploadedFile.name}` : 'No file uploaded'}
+          </p>
         </div>
-      )}
 
-      {/* Compare Button */}
-      <button
-        onClick={handleCompare}
-        disabled={loading}
-        className={`w-full py-3 rounded-xl font-semibold text-white transition ${
-          loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
-        }`}
-      >
-        {loading ? '⏳ Verifying...' : '🔍 Compare Signatures'}
-      </button>
-
-      {/* Result */}
-      {result && (
-        <div className="text-center text-lg font-semibold text-gray-800 mt-3 border-t pt-3 border-gray-200">
-          {result}
+        {/* Analysis Options Panel */}
+        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
+          <h2 className="text-xl font-bold text-cyan-300 mb-4">Analysis Options</h2>
+          <select
+            value={selectedAnalysis}
+            onChange={(e) => setSelectedAnalysis(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition mb-4"
+          >
+            <option>Slant</option>
+            <option>Pressure</option>
+            <option>Line Spacing</option>
+            <option>Letter Size</option>
+            <option>Consistency</option>
+          </select>
+          <button
+            onClick={() => setAnalysisResult('Analysis Complete ✅')}
+            className="w-full py-3 rounded-xl font-semibold bg-cyan-500 hover:bg-cyan-600 text-gray-900 transition"
+          >
+            Run Analysis
+          </button>
         </div>
-      )}
+
+        {/* Result Panel */}
+        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 flex flex-col justify-between">
+          <h2 className="text-xl font-bold text-cyan-300 mb-4">Results</h2>
+          <div className="flex-1 flex flex-col justify-center items-center text-gray-100 text-lg font-mono">
+            <p className="mb-4">{analysisResult}</p>
+
+            {/* Line Chart */}
+            <div className="w-full h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={lineData}>
+                  <CartesianGrid stroke="#444" strokeDasharray="3 3" />
+                  <XAxis dataKey="line" stroke="#888" />
+                  <YAxis stroke="#888" />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="value" stroke="#00FFFF" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Pie Chart */}
+            <div className="w-32 h-32 mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    innerRadius={30}
+                    outerRadius={50}
+                    dataKey="value"
+                    label
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Extra Stats Panel */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
+          <h3 className="text-lg font-bold text-cyan-300 mb-4">Recent Analyses</h3>
+          <ul className="text-gray-400 space-y-2">
+            <li>John Doe - Slant - ✅</li>
+            <li>Jane Smith - Pressure - ❌</li>
+            <li>Alex K. - Line Spacing - ✅</li>
+            <li>Sample User - Consistency - Pending</li>
+          </ul>
+        </div>
+
+        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
+          <h3 className="text-lg font-bold text-cyan-300 mb-4">Metrics</h3>
+          <div className="text-gray-400 text-sm space-y-2">
+            <p>Total Samples: 120</p>
+            <p>Completed: 95</p>
+            <p>Pending: 25</p>
+            <p>Success Rate: 79%</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
