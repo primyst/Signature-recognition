@@ -13,9 +13,9 @@ export default function SignatureVerifier() {
   const sigCanvasRef = useRef<SignatureCanvas>(null)
 
   const handleCompare = async () => {
-    const formData = new FormData()
-
     if (!original) return alert('Upload original signature!')
+
+    const formData = new FormData()
     formData.append('original', original)
 
     if (mode === 'upload') {
@@ -49,16 +49,18 @@ export default function SignatureVerifier() {
   }
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white shadow-xl rounded-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-center text-gray-800">KAMAL Handwriting and Signature Verification WebApp</h1>
+    <div className="max-w-lg mx-auto p-8 bg-gray-50 rounded-3xl shadow-2xl space-y-6 border border-gray-200">
+      <h1 className="text-3xl font-extrabold text-center text-gray-900 tracking-wide">
+        🕵️ Forensic Handwriting Analysis
+      </h1>
 
       {/* Mode Selector */}
       <div>
-        <label className="block font-semibold text-gray-700 mb-1">Test Signature Input Method</label>
+        <label className="block font-semibold text-gray-700 mb-2">Test Signature Input Method</label>
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value as 'draw' | 'upload')}
-          className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
         >
           <option value="draw">✍️ Draw Test Signature</option>
           <option value="upload">📁 Upload Test Signature</option>
@@ -67,12 +69,12 @@ export default function SignatureVerifier() {
 
       {/* Upload Original Signature */}
       <div>
-        <label className="block font-semibold text-gray-700 mb-1">Original Signature</label>
+        <label className="block font-semibold text-gray-700 mb-2">Original Signature</label>
         <input
           type="file"
           accept="image/*"
           onChange={(e) => setOriginal(e.target.files?.[0] || null)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
         />
       </div>
 
@@ -80,28 +82,28 @@ export default function SignatureVerifier() {
       {mode === 'draw' ? (
         <div>
           <label className="block font-semibold text-gray-700 mb-2">Draw Test Signature</label>
-          <div className="border rounded-lg overflow-hidden shadow-sm">
+          <div className="border rounded-xl overflow-hidden shadow-inner bg-white">
             <SignatureCanvas
               ref={sigCanvasRef}
               penColor="black"
-              canvasProps={{ width: 300, height: 150, className: 'bg-white' }}
+              canvasProps={{ width: 320, height: 160, className: 'bg-white' }}
             />
           </div>
           <button
             onClick={() => sigCanvasRef.current?.clear()}
-            className="mt-2 px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded-md"
+            className="mt-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-xl text-sm font-medium transition"
           >
             🧹 Clear
           </button>
         </div>
       ) : (
         <div>
-          <label className="block font-semibold text-gray-700 mb-1">Upload Test Signature</label>
+          <label className="block font-semibold text-gray-700 mb-2">Upload Test Signature</label>
           <input
             type="file"
             accept="image/*"
             onChange={(e) => setTest(e.target.files?.[0] || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
           />
         </div>
       )}
@@ -110,14 +112,16 @@ export default function SignatureVerifier() {
       <button
         onClick={handleCompare}
         disabled={loading}
-        className={`w-full py-2 ${loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} text-white font-medium rounded-lg transition duration-200`}
+        className={`w-full py-3 rounded-xl font-semibold text-white transition ${
+          loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+        }`}
       >
         {loading ? '⏳ Verifying...' : '🔍 Compare Signatures'}
       </button>
 
       {/* Result */}
       {result && (
-        <div className="text-center text-lg font-semibold text-gray-800 mt-2">
+        <div className="text-center text-lg font-semibold text-gray-800 mt-3 border-t pt-3 border-gray-200">
           {result}
         </div>
       )}
