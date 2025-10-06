@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import axios from 'axios'
 import {
   LineChart,
   Line,
@@ -14,23 +15,56 @@ import {
   Cell,
 } from 'recharts'
 
-export default function HandwritingDashboard() {
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [selectedAnalysis, setSelectedAnalysis] = useState('Slant')
-  const [analysisResult, setAnalysisResult] = useState('Pending')
+export default function ForensicHandwritingDashboard() {
+  const [originalFile, setOriginalFile] = useState<File | null>(null)
+  const [testFile, setTestFile] = useState<File | null>(null)
+  const [matchScore, setMatchScore] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
 
-  // Mock line chart data (e.g., slant or pressure over lines)
+  const COLORS = ['#00FFFF', '#555555']
+
+  const handleCompare = async () => {
+    if (!originalFile || !testFile) {
+      setErrorMsg('Please upload both handwriting samples.')
+      return
+    }
+
+    setLoading(true)
+    setErrorMsg('')
+    setMatchScore(null)
+
+    const formData = new FormData()
+    formData.append('original', originalFile)
+    formData.append('test', testFile)
+
+    try {
+      const res = await axios.post('http://localhost:5000/api/verify', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setMatchScore(res.data.match_score)
+    } catch (err) {
+      setErrorMsg('Error contacting the verification server.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Create a simple line chart to visualize score trend or randomness
   const lineData = Array.from({ length: 10 }, (_, i) => ({
     line: i + 1,
-    value: Math.floor(Math.random() * 100),
+    value: matchScore ? matchScore - Math.random() * 10 : Math.random() * 100,
   }))
 
-  // Mock pie chart data (completed vs pending)
-  const pieData = [
-    { name: 'Completed', value: 80 },
-    { name: 'Pending', value: 20 },
-  ]
-  const COLORS = ['#00FFFF', '#555555']
+  const pieData = matchScore
+    ? [
+        { name: 'Match', value: matchScore },
+        { name: 'Difference', value: 100 - matchScore },
+      ]
+    : [
+        { name: 'Match', value: 0 },
+        { name: 'Difference', value: 100 },
+      ]
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
@@ -46,45 +80,64 @@ export default function HandwritingDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Upload Panel */}
         <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-          <h2 className="text-xl font-bold text-cyan-300 mb-4">Upload Sample</h2>
+          <h2 className="text-xl font-bold text-cyan-300 mb-4">Original Sample</h2>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+            onChange={(e) => setOriginalFile(e.target.files?.[0] || null)}
             className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition mb-4"
           />
-          <p className="text-gray-400 text-sm">
-            {uploadedFile ? `Selected: ${uploadedFile.name}` : 'No file uploaded'}
-          </p>
+          {originalFile && (
+            <img
+              src={URL.createObjectURL(originalFile)}
+              alt="Original sample"
+              className="rounded-xl border border-gray-700 mt-2"
+            />
+          )}
         </div>
 
-        {/* Analysis Options Panel */}
+        {/* Upload Test Panel */}
         <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-          <h2 className="text-xl font-bold text-cyan-300 mb-4">Analysis Options</h2>
-          <select
-            value={selectedAnalysis}
-            onChange={(e) => setSelectedAnalysis(e.target.value)}
+          <h2 className="text-xl font-bold text-cyan-300 mb-4">Test Sample</h2>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setTestFile(e.target.files?.[0] || null)}
             className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition mb-4"
-          >
-            <option>Slant</option>
-            <option>Pressure</option>
-            <option>Line Spacing</option>
-            <option>Letter Size</option>
-            <option>Consistency</option>
-          </select>
-          <button
-            onClick={() => setAnalysisResult('Analysis Complete ✅')}
-            className="w-full py-3 rounded-xl font-semibold bg-cyan-500 hover:bg-cyan-600 text-gray-900 transition"
-          >
-            Run Analysis
-          </button>
+          />
+          {testFile && (
+            <img
+              src={URL.createObjectURL(testFile)}
+              alt="Test sample"
+              className="rounded-xl border border-gray-700 mt-2"
+            />
+          )}
         </div>
 
         {/* Result Panel */}
         <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 flex flex-col justify-between">
           <h2 className="text-xl font-bold text-cyan-300 mb-4">Results</h2>
           <div className="flex-1 flex flex-col justify-center items-center text-gray-100 text-lg font-mono">
-            <p className="mb-4">{analysisResult}</p>
+            {loading ? (
+              <p className="text-cyan-400">Analyzing handwriting...</p>
+            ) : matchScore !== null ? (
+              <>
+                <p
+                  className={`mb-4 text-2xl font-bold ${
+                    matchScore >= 70 ? 'text-green-400' : 'text-red-400'
+                  }`}
+                >
+                  Match Score: {matchScore}%
+                </p>
+                <p className="text-gray-400 mb-4">
+                  {matchScore >= 70
+                    ? '✅ Likely written by the same person'
+                    : '❌ Possibly different handwriting samples'}
+                </p>
+              </>
+            ) : (
+              <p className="text-gray-400">Awaiting comparison...</p>
+            )}
 
             {/* Line Chart */}
             <div className="w-full h-32">
@@ -121,28 +174,23 @@ export default function HandwritingDashboard() {
         </div>
       </div>
 
-      {/* Extra Stats Panel */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-          <h3 className="text-lg font-bold text-cyan-300 mb-4">Recent Analyses</h3>
-          <ul className="text-gray-400 space-y-2">
-            <li>John Doe - Slant - ✅</li>
-            <li>Jane Smith - Pressure - ❌</li>
-            <li>Alex K. - Line Spacing - ✅</li>
-            <li>Sample User - Consistency - Pending</li>
-          </ul>
-        </div>
-
-        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-          <h3 className="text-lg font-bold text-cyan-300 mb-4">Metrics</h3>
-          <div className="text-gray-400 text-sm space-y-2">
-            <p>Total Samples: 120</p>
-            <p>Completed: 95</p>
-            <p>Pending: 25</p>
-            <p>Success Rate: 79%</p>
-          </div>
-        </div>
+      {/* Compare Button */}
+      <div className="mt-8 flex justify-center">
+        <button
+          onClick={handleCompare}
+          disabled={loading}
+          className={`px-10 py-3 rounded-xl font-semibold ${
+            loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-cyan-500 hover:bg-cyan-600'
+          } text-gray-900 transition`}
+        >
+          {loading ? 'Running Analysis...' : 'Run Real Comparison'}
+        </button>
       </div>
+
+      {/* Error message */}
+      {errorMsg && (
+        <p className="text-red-400 text-center mt-4">{errorMsg}</p>
+      )}
     </div>
   )
 }
