@@ -2,46 +2,33 @@
 
 import { useState } from "react";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
+  Tooltip,
 } from "recharts";
 
-export default function HandwritingDashboard() {
+export default function ForensicHandwritingDashboard() {
+  const [mode, setMode] = useState("Signature");
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [testFile, setTestFile] = useState<File | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<string>("Pending");
   const [matchScore, setMatchScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [metrics, setMetrics] = useState<any>(null);
+  const [selectedModel, setSelectedModel] = useState("CNN");
 
   const COLORS = ["#00FFFF", "#555555"];
 
-  // dynamic chart data based on score
-  const pieData = [
-    { name: "Match", value: matchScore ?? 0 },
-    { name: "Difference", value: 100 - (matchScore ?? 0) },
-  ];
-
-  const lineData = Array.from({ length: 10 }, (_, i) => ({
-    line: i + 1,
-    value: Math.floor(Math.random() * 100),
-  }));
-
-  const handleCompare = async () => {
+  const handleVerify = async () => {
     if (!originalFile || !testFile) {
-      setAnalysisResult("⚠️ Please upload both handwriting samples first.");
+      setErrorMsg("Please upload both images before verifying.");
       return;
     }
 
     setLoading(true);
-    setAnalysisResult("Analyzing handwriting... 🧠");
+    setErrorMsg("");
 
     const formData = new FormData();
     formData.append("original", originalFile);
@@ -55,27 +42,36 @@ export default function HandwritingDashboard() {
           body: formData,
         }
       );
-
-      if (!res.ok) throw new Error("API request failed");
-
       const data = await res.json();
-      const score = data.match_score ?? 0;
-      setMatchScore(score);
 
-      if (score >= 70) {
-        setAnalysisResult(`✅ Strong Match (${score}%)`);
-      } else if (score >= 40) {
-        setAnalysisResult(`⚖️ Partial Match (${score}%)`);
+      if (data.match_score !== undefined) {
+        setMatchScore(data.match_score);
+        generateMetrics(); // simulate CNN/SVM metrics
       } else {
-        setAnalysisResult(`❌ Weak or No Match (${score}%)`);
+        setErrorMsg("Invalid response from server.");
       }
     } catch (err) {
-      console.error(err);
-      setAnalysisResult("❌ Error analyzing handwriting.");
+      setErrorMsg("Verification failed. Check your backend connection.");
     } finally {
       setLoading(false);
     }
   };
+
+  const generateMetrics = () => {
+    // Simulate CNN / SVM / kNN metrics for display
+    const random = () => (Math.random() * 0.2 + 0.75).toFixed(2);
+    setMetrics({
+      accuracy: random(),
+      precision: random(),
+      recall: random(),
+      f1: random(),
+    });
+  };
+
+  const pieData = [
+    { name: "Match", value: matchScore || 0 },
+    { name: "Difference", value: 100 - (matchScore || 0) },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
@@ -84,127 +80,150 @@ export default function HandwritingDashboard() {
         <h1 className="text-3xl font-extrabold text-cyan-400 tracking-wide">
           🕵️ Forensic Handwriting Dashboard
         </h1>
-        <div className="text-gray-400">Lab Interface</div>
+        <div className="text-gray-400">{mode} Verification Lab</div>
       </header>
 
-      {/* Main Panels */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Upload Panel */}
-        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-          <h2 className="text-xl font-bold text-cyan-300 mb-4">
-            Upload Handwriting Samples
-          </h2>
+      {/* Mode and Model Selection */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+          <h2 className="text-lg font-bold text-cyan-300 mb-3">Mode</h2>
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:ring-2 focus:ring-cyan-400 transition"
+          >
+            <option>Signature</option>
+            <option>Handwriting</option>
+          </select>
+        </div>
 
-          <p className="text-gray-400 mb-2">Original Sample:</p>
+        <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+          <h2 className="text-lg font-bold text-cyan-300 mb-3">Model</h2>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:ring-2 focus:ring-cyan-400 transition"
+          >
+            <option>CNN</option>
+            <option>SVM</option>
+            <option>k-NN</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Upload Panels */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+          <h2 className="text-xl font-bold text-cyan-300 mb-4">
+            Upload Original {mode}
+          </h2>
           <input
             type="file"
             accept="image/*"
             onChange={(e) => setOriginalFile(e.target.files?.[0] || null)}
-            className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition mb-4"
+            className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:ring-2 focus:ring-cyan-400 transition mb-4"
           />
+          {originalFile && (
+            <img
+              src={URL.createObjectURL(originalFile)}
+              alt="Original"
+              className="rounded-xl border border-gray-700"
+            />
+          )}
+        </div>
 
-          <p className="text-gray-400 mb-2">Test Sample:</p>
+        <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+          <h2 className="text-xl font-bold text-cyan-300 mb-4">
+            Upload Test {mode}
+          </h2>
           <input
             type="file"
             accept="image/*"
             onChange={(e) => setTestFile(e.target.files?.[0] || null)}
-            className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition"
+            className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-600 focus:ring-2 focus:ring-cyan-400 transition mb-4"
           />
-
-          <button
-            onClick={handleCompare}
-            disabled={loading}
-            className={`w-full mt-6 py-3 rounded-xl font-semibold ${
-              loading
-                ? "bg-gray-600 cursor-not-allowed"
-                : "bg-cyan-500 hover:bg-cyan-600"
-            } text-gray-900 transition`}
-          >
-            {loading ? "Analyzing..." : "Compare Handwriting"}
-          </button>
+          {testFile && (
+            <img
+              src={URL.createObjectURL(testFile)}
+              alt="Test"
+              className="rounded-xl border border-gray-700"
+            />
+          )}
         </div>
+      </div>
 
-        {/* Analysis Panel */}
-        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 flex flex-col justify-between">
-          <h2 className="text-xl font-bold text-cyan-300 mb-4">
-            Analysis Results
-          </h2>
-          <div className="flex-1 flex flex-col justify-center items-center text-gray-100 text-lg font-mono">
-            <p className="mb-4 text-center">{analysisResult}</p>
+      {/* Verify Button */}
+      <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 mb-8">
+        <button
+          onClick={handleVerify}
+          disabled={loading}
+          className={`w-full py-3 rounded-xl font-semibold ${
+            loading
+              ? "bg-gray-600 cursor-not-allowed"
+              : "bg-cyan-500 hover:bg-cyan-600"
+          } text-gray-900 transition`}
+        >
+          {loading ? "Analyzing..." : "Run Comparison"}
+        </button>
 
-            {/* Pie Chart */}
-            {matchScore !== null && (
-              <div className="w-40 h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      innerRadius={40}
-                      outerRadius={70}
-                      dataKey="value"
-                      label
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+        {errorMsg && <p className="text-red-400 mt-4 text-sm">{errorMsg}</p>}
+      </div>
+
+      {/* Result & Metrics */}
+      {matchScore !== null && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 flex flex-col items-center">
+            <p
+              className={`text-2xl font-bold mb-2 ${
+                matchScore >= 70 ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              Match Score: {matchScore}%
+            </p>
+            <p className="text-gray-400 text-sm mb-6">
+              {matchScore >= 70
+                ? "✅ Likely the same author"
+                : "❌ Possibly different author"}
+            </p>
+
+            <div className="w-40 h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    innerRadius={40}
+                    outerRadius={70}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label
+                  >
+                    {pieData.map((entry, i) => (
+                      <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700">
+            <h2 className="text-xl font-bold text-cyan-300 mb-4">
+              {selectedModel} Model Metrics
+            </h2>
+            {metrics ? (
+              <div className="space-y-2 text-gray-300">
+                <p>Accuracy: {metrics.accuracy}</p>
+                <p>Precision: {metrics.precision}</p>
+                <p>Recall: {metrics.recall}</p>
+                <p>F1-Score: {metrics.f1}</p>
               </div>
+            ) : (
+              <p className="text-gray-500">Run comparison to see metrics</p>
             )}
           </div>
         </div>
-
-        {/* Line Chart Visualization */}
-        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-          <h2 className="text-xl font-bold text-cyan-300 mb-4">
-            Feature Variation
-          </h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={lineData}>
-              <CartesianGrid stroke="#444" strokeDasharray="3 3" />
-              <XAxis dataKey="line" stroke="#888" />
-              <YAxis stroke="#888" />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke="#00FFFF"
-                strokeWidth={2}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Footer Section */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-          <h3 className="text-lg font-bold text-cyan-300 mb-4">
-            Recent Comparisons
-          </h3>
-          <ul className="text-gray-400 space-y-2">
-            <li>Case 01 – Slant Consistency – ✅</li>
-            <li>Case 02 – Pressure Depth – ❌</li>
-            <li>Case 03 – Stroke Pattern – ✅</li>
-            <li>Case 04 – Line Alignment – Pending</li>
-          </ul>
-        </div>
-
-        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-          <h3 className="text-lg font-bold text-cyan-300 mb-4">Metrics</h3>
-          <div className="text-gray-400 text-sm space-y-2">
-            <p>Total Samples: 140</p>
-            <p>Completed: 112</p>
-            <p>Pending: 28</p>
-            <p>Match Rate: 80%</p>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
