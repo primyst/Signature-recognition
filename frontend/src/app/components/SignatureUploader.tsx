@@ -81,7 +81,7 @@ export default function ForensicHandwritingDashboard() {
       {/* Header */}
       <header className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold text-cyan-400 tracking-wide">
-          🧠 Forensic Handwriting Dashboard
+          🧠 Forensic Handwriting and Signature Dashboard
         </h1>
         <div className="text-gray-400">AI-Powered Lab Interface</div>
       </header>
